@@ -8,12 +8,15 @@ import qs.Ui
 // the same file. If an Omarchy update moves this file, the widget stops
 // loading — look for the new place in $OMARCHY_PATH/shell/plugins/clipboard.
 import "file:///usr/share/omarchy/shell/plugins/clipboard/ClipboardHistory.js" as ClipboardHistory
+import "I18n.js" as I18n
 
 Panel {
   id: root
   moduleName: "predmaxim.clipboard"
   ipcTarget: "predmaxim.clipboard"
 
+  // Interface text in the system's language (I18n.js).
+  readonly property var tr: I18n.translator(I18n.textLanguage(function(name) { return Quickshell.env(name) }))
   readonly property string omarchyPath: Quickshell.env("OMARCHY_PATH")
   readonly property string pasteScript: Qt.resolvedUrl("paste.sh").toString().replace(/^file:\/\//, "")
   // The built-in manager never keeps more than 300 entries.
@@ -24,7 +27,7 @@ Panel {
   property bool editingLimit: false
   property int selectedIndex: 0
 
-  readonly property var rows: ClipboardHistory.displayRows(history, "", limit)
+  readonly property var rows: ClipboardHistory.displayRows(history, searchField.text, limit)
 
   function save(next) {
     root.history = next
@@ -77,12 +80,13 @@ Panel {
         root.bar.shell.updateEntryInline(root.moduleName, entry)
     }
     root.editingLimit = false
-    keyCatcher.forceActiveFocus()
+    searchField.forceActiveFocus()
   }
 
   onLimitChanged: trim()
   onOpenedChanged: {
     root.editingLimit = false
+    searchField.text = ""
     root.selectedIndex = 0
     if (opened) list.positionViewAtBeginning()
   }
@@ -118,14 +122,14 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened && root.present
-    focusTarget: keyCatcher
+    focusTarget: searchField
     contentWidth: panel.fittedContentWidth(Style.space(460))
     contentHeight: panel.fittedContentHeight(column.implicitHeight)
 
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      blocked: limitField.activeFocus
+      blocked: limitField.activeFocus || searchField.activeFocus
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onMoveRequested: function(dx, dy) { root.move(dy) }
@@ -141,8 +145,8 @@ Panel {
         spacing: Style.space(14)
 
         PanelHero {
-          title: "Буфер обмена"
-          meta: "Записей"
+          title: root.tr("Clipboard")
+          meta: root.tr("Entries")
           foreground: root.bar.foreground
           fontFamily: root.bar.fontFamily
           iconComponent: Text {
@@ -167,7 +171,7 @@ Panel {
               anchors.verticalCenter: parent.verticalCenter
               iconText: "\uf013"
               iconSize: Style.font.body
-              tooltipText: "Сколько хранить"
+              tooltipText: root.tr("How many to keep")
               foreground: root.bar.foreground
               fontFamily: root.bar.fontFamily
               bordered: true
@@ -178,10 +182,28 @@ Panel {
                   limitField.text = String(root.limit)
                   limitField.forceActiveFocus()
                   limitField.selectAll()
-                } else keyCatcher.forceActiveFocus()
+                } else searchField.forceActiveFocus()
               }
             }
           }
+        }
+
+        // Typing goes here from the start; the list keys that aren't text
+        // (arrows, Enter, Delete, Esc, Tab) are handled on the field itself.
+        TextField {
+          id: searchField
+          width: parent.width
+          placeholderText: root.tr("Search")
+          foreground: root.bar.foreground
+          font.family: root.bar.fontFamily
+          onTextChanged: { root.selectedIndex = 0; list.positionViewAtBeginning() }
+          onAccepted: root.paste(root.selectedIndex)
+          Keys.onUpPressed: root.move(-1)
+          Keys.onDownPressed: root.move(1)
+          Keys.onDeletePressed: root.remove(root.selectedIndex)
+          Keys.onEscapePressed: { if (text) text = ""; else root.close() }
+          Keys.onTabPressed: root.switchPanel(1)
+          Keys.onBacktabPressed: root.switchPanel(-1)
         }
 
         Column {
@@ -190,7 +212,7 @@ Panel {
           spacing: Style.space(6)
 
           Text {
-            text: "СКОЛЬКО ЗАПИСЕЙ ХРАНИТЬ (1–" + root.maxLimit + ") · ENTER — СОХРАНИТЬ"
+            text: root.tr("How many entries to keep (1–%1) · Enter saves", root.maxLimit).toUpperCase()
             color: Qt.darker(root.bar.foreground, 1.4)
             font.family: root.bar.fontFamily
             font.pixelSize: Style.font.caption
@@ -205,11 +227,19 @@ Panel {
             font.family: root.bar.fontFamily
             validator: IntValidator { bottom: 1; top: root.maxLimit }
             onAccepted: root.setLimit(text)
-            Keys.onEscapePressed: { root.editingLimit = false; keyCatcher.forceActiveFocus() }
+            Keys.onEscapePressed: { root.editingLimit = false; searchField.forceActiveFocus() }
           }
         }
 
         PanelSeparator { foreground: root.bar.foreground }
+
+        Text {
+          visible: root.rows.length === 0
+          text: root.tr("Nothing found")
+          color: Qt.darker(root.bar.foreground, 1.4)
+          font.family: root.bar.fontFamily
+          font.pixelSize: Style.font.body
+        }
 
         ListView {
           id: list
@@ -290,7 +320,7 @@ Panel {
               Text {
                 visible: row.modelData.entryType !== "text"
                 textFormat: Text.PlainText
-                text: row.modelData.entryType === "file" ? row.modelData.path || "Файлы" : "Изображение"
+                text: row.modelData.entryType === "file" ? row.modelData.path || root.tr("Files") : root.tr("Image")
                 color: Qt.darker(root.bar.foreground, 1.4)
                 font.family: root.bar.fontFamily
                 font.pixelSize: Style.font.caption
@@ -308,7 +338,7 @@ Panel {
               anchors.verticalCenter: parent.verticalCenter
               iconText: "\uf1f8"
               iconSize: Style.font.body
-              tooltipText: "Удалить"
+              tooltipText: root.tr("Delete")
               foreground: root.bar.foreground
               fontFamily: root.bar.fontFamily
               bordered: true
