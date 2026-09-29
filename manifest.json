@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "predmaxim.clipboard",
+  "name": "Clipboard",
+  "version": "1.0.0",
+  "author": "predmaxim",
+  "description": "Clipboard history on the bar: click pastes, trash deletes",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Clipboard",
+    "description": "Clipboard history with paste and delete",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
