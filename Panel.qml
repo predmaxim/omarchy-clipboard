@@ -15,6 +15,7 @@ Panel {
   ipcTarget: "predmaxim.clipboard"
 
   readonly property string omarchyPath: Quickshell.env("OMARCHY_PATH")
+  readonly property string pasteScript: Qt.resolvedUrl("paste.sh").toString().replace(/^file:\/\//, "")
   // The built-in manager never keeps more than 300 entries.
   readonly property int maxLimit: 300
   readonly property int limit: Math.max(1, Math.min(maxLimit, parseInt(setting("limit", 50)) || 50))
@@ -42,14 +43,17 @@ Panel {
     root.selectedIndex = Math.min(root.selectedIndex, root.rows.length - 1)
   }
 
-  // Same helpers the built-in manager uses: copy the entry back to the
-  // clipboard, then Shift+Insert into the window that regains focus.
+  // Copy the entry back to the clipboard, then paste into the window that
+  // regains focus. Text goes through the built-in helper; images and files
+  // through paste.sh, which gives terminals their paths instead.
   function paste(index) {
     if (index < 0 || index >= root.rows.length) return
     var row = root.rows[index]
     root.close()
     if (row.entryType === "image")
-      Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-paste-file", row.mime, row.path])
+      Quickshell.execDetached([root.pasteScript, "image", row.mime, row.path])
+    else if (row.entryType === "file")
+      Quickshell.execDetached([root.pasteScript, "files", String(row.index)].concat(ClipboardHistory.filePaths(root.history[row.index])))
     else
       Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-paste-text", "--history-index", String(row.index)])
   }
