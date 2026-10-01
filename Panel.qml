@@ -7,7 +7,7 @@ import qs.Ui
 // manager (omarchy.clipboard, Super+Ctrl+V); this widget is a second view of
 // the same file. If an Omarchy update moves this file, the widget stops
 // loading — look for the new place in $OMARCHY_PATH/shell/plugins/clipboard.
-import "file:///usr/share/omarchy/shell/plugins/clipboard/ClipboardHistory.js" as ClipboardHistory
+import "qs:@/qs/plugins/clipboard/ClipboardHistory.js" as ClipboardHistory
 import "I18n.js" as I18n
 
 Panel {
