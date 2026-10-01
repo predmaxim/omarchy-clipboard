@@ -26,12 +26,15 @@ files)
   else
     jq -j --argjson i "$index" '.[$i].text | split("\n") | map(select(startswith("file://"))) | join("\n")' \
       "$HOME/.local/state/omarchy/clipboard-history.json" | wl-copy --type text/uri-list
-    exec wtype -M ctrl -k v -m ctrl
   fi
   ;;
 *) exit 1 ;;
 esac
 
 # Foot and the other Omarchy terminals paste the clipboard on Shift+Insert;
-# GTK and Chromium do too.
-wtype -M shift -k Insert -m shift
+# GTK and Chromium do too. A uri-list needs Ctrl+V.
+if [[ $kind == "files" ]] && ! $terminal; then
+  wtype -M ctrl -k v -m ctrl
+else
+  wtype -M shift -k Insert -m shift
+fi
