@@ -113,6 +113,7 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: "󰅌"
+    tooltipText: root.tr("Clipboard")
     onPressed: function(b) { root.toggle() }
   }
 
